@@ -41,6 +41,10 @@
                 width: 100%;
                 height: 1000px;
             }
+
+            iframe.a{
+                cursor: text;
+            }
             input#scrape_url{
                 height: 1.5em;
                 width:80%;

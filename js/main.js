@@ -33,6 +33,7 @@ $( document ).ready(function() {
         span.className = "variable_item "+name;
         span.appendChild(selectedText);
         selection.insertNode(span);
+        // $('span.'+name).parent().css('background-color', hexColor);
     }
 
     function unselectText(name){
@@ -149,10 +150,11 @@ $( document ).ready(function() {
 
         var type_of = current_parent.prop('tagName');
         //var repeater_wrapper = current_parent.parent();
-        alert("attempting to find next of type "+ type_of);
+        console.log("attempting to find next of type "+ type_of);
         el_index = current_parent.index();
 
         var next_element = current_parent.next();
+        current_parent = current_parent.next();
         //var next_element = repeater_wrapper.find(type_of+":nth-child(3)");
         current_parent.css('background-color', 'initial');
         next_element.css('background-color', 'yellow');

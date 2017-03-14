@@ -3,20 +3,35 @@ $( document ).ready(function() {
     var idoc;
     var preset_data;
     var current_parent;
+    var mouse_x;     
+    var mouse_y;
+
 
     $('#external_content').on('load', function(){
         idoc = document.getElementById('external_content').contentDocument;
         
-        $(idoc).on('mouseup', function () {
+       
+        $(idoc).click(function(e){
+                e.preventDefault()
+        });
+
+        $(idoc).on('mouseup', function (event) {
+            
+            // console.log(event);
+            // event.preventDefault();
             //get the variable name
             var var_name = $('input[name=variable]:checked').val();
             //get the variable color
             var var_color = $('input[name=variable]:checked').attr('color');
 
-            selectText(var_color, var_name);
+            sel_element = idoc.elementFromPoint(mouse_x, mouse_y);
+
+            selectText(sel_element, var_color, var_name);
         });
 
-        $(idoc).on('mousedown', function () {
+        $(idoc).on('mousedown', function (event) {
+            mouse_x = event.clientX;    
+            mouse_y = event.clientY;
             //get the variable name
             var var_name = $('input[name=variable]:checked').val();
             unselectText(var_name);
@@ -24,20 +39,26 @@ $( document ).ready(function() {
     });
 
 
-    function selectText(hexColor, name) {
+    function selectText(element, color, name) {
 
-        var selection = idoc.getSelection().getRangeAt(0);
-        var selectedText = selection.extractContents();
-        var span = idoc.createElement('span');
-        span.style.backgroundColor = hexColor;
-        span.className = "variable_item "+name;
-        span.appendChild(selectedText);
-        selection.insertNode(span);
+        // var selection = idoc.getSelection().getRangeAt(0);
+        // var selectedText = selection.extractContents();
+        // var span = idoc.createElement('span');
+        // span.style.backgroundColor = hexColor;
+        // span.className = "variable_item "+name;
+        $(element).addClass('variable_item');
+        $(element).addClass(name);
+
+        $(element).css('background-color', color);
+        // span.appendChild(selectedText);
+        // selection.insertNode(span);
         // $('span.'+name).parent().css('background-color', hexColor);
     }
 
     function unselectText(name){
-        $(idoc).find('.'+name).contents().unwrap();
+        // $(idoc).find('.'+name).contents().unwrap();
+        $(idoc).find('.'+name).css('background-color', 'initial');
+        $(idoc).find('.'+name).removeClass(name);
 
     }
 
@@ -48,6 +69,7 @@ $( document ).ready(function() {
     function change_frame_url(){
         var request_url = $('#scrape_url').val();
         $('#external_content').attr('src', 'http://paul.local/pias/localize?url='+encodeURIComponent(request_url) );
+        $('#page_url').val(encodeURIComponent(request_url));
     }
 
      function add_variable(){
@@ -56,17 +78,17 @@ $( document ).ready(function() {
         var variable_color = $('#variable_color').val();
 
      
-        $( "#the_varibles" ).append('<input type="radio" name="variable" value="'+variable_name+"pias"+'" color="'+variable_color+'"><span style="background-color:'+variable_color+'">'+variable_name+'</span> <br>');
-        $( "#the_varibles" ).append('<input type="hidden" class="scrape_vars" id="'+variable_name+"pias"+'" >');
+        $( "#the_varibles" ).prepend('<input type="hidden" class="scrape_vars" name="vars['+variable_name+']" id="'+variable_name+"pias"+'" >');
+        $( "#the_varibles" ).prepend('<input type="radio" name="variable" value="'+variable_name+"pias"+'" color="'+variable_color+'"><span style="background-color:'+variable_color+'">'+variable_name+'</span> <br>');
         $('#variable_name').val("");
         $('#variable_color').val("");
     }
 
     function findParent(){
         var current_lineage_layer = parseInt($('#parent_lineage_level').val());
-        var selected_element = $( "#external_content" ).contents().find( "span.variable_item" ).first();
-        var parent_el = selected_element.parent();
-        parent_el.css('background-color', 'yellow');
+        var selected_element = $( "#external_content" ).contents().find( ".variable_item" ).first();
+        var parent_el = selected_element;
+        parent_el.parent().css('background-color', 'yellow');
         parent_el.attr('pias_parent_level', current_lineage_layer);
         $('#parent_lineage_level').val(current_lineage_layer+1);
         current_parent = parent_el;
@@ -78,6 +100,7 @@ $( document ).ready(function() {
     function nextParent(){
         var current_lineage_layer = parseInt($('#parent_lineage_level').val());
         current_parent.css('background-color', 'initial');
+
         var next_parent = current_parent.parent();
         next_parent.css('background-color', 'yellow');
         next_parent.attr('pias_parent_level', current_lineage_layer+1);
@@ -97,6 +120,10 @@ $( document ).ready(function() {
         current_parent = last_parent;
     }
 
+    function nodeMatch(a, b) {
+        return(a.length === b.length && a.length === a.filter(b).length);
+    }
+
    
     function predictNext(){
         
@@ -111,8 +138,8 @@ $( document ).ready(function() {
             var selector_class = $(this).val();
 
             console.log(selector_class);
-
-            var cur_el = $( "#external_content" ).contents().find('.'+selector_class).parent();
+            //follow each variable element up until it hits the repeating parent. 
+            var cur_el = $( "#external_content" ).contents().find('.'+selector_class);
             while(cur_el.attr('pias_parent_level') != current_lineage_layer){
                 counter++;
                 var type_of = cur_el.prop('tagName');
@@ -124,12 +151,38 @@ $( document ).ready(function() {
                 var index = matched_elements.index(cur_el);
 
                 coordinateObj[counter] = {'type_of': type_of, 'index': index};
-
+                
+                //store coordinates of variable in hidden field to be submitted
+                
                 cur_el = cur_el.parent();
             }
-            //go back throug the coordinates in the next parent 
+            var selector_id = selector_class;
+            $('#'+selector_id).val(JSON.stringify(coordinateObj));
+
+      
+            //log the coordinates of the selected repeating parent from the BODY tag down
+            var tracer = current_parent;
+            var coordinates_from_body = [];
+            var tracer_ct = 0;
+            while (tracer.prop('tagName') != 'BODY'){
+                var type_of = tracer.prop('tagName');
+                //get parent 
+                var item_parent = tracer.parent();
+                //find all the elements of type in that parent
+                var matched_elements = item_parent.children(type_of);
+
+                var index = matched_elements.index(tracer);
+
+                coordinates_from_body[tracer_ct] = {'type_of': type_of, 'index': index};
+                tracer_ct++;
+                tracer = tracer.parent();
+            }
+            $('#tracer_coordinates').val(JSON.stringify(coordinates_from_body));
+
+
             var next_element = current_parent.next();
             var the_location = next_element;
+             //go back throug the coordinates in the next parent 
             for (i = counter; i > 0; i--) {
                 console.log("type "+coordinateObj[i].type_of+" at index "+ coordinateObj[i].index);
                 the_location = the_location.children(coordinateObj[i].type_of).eq(coordinateObj[i].index);

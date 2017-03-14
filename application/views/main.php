@@ -90,7 +90,10 @@
 
                 </form>
 
-                <form id="the_varibles">
+                <form id="the_varibles" method="post" >
+                    <input type="hidden" name="tracer_coordinates" id="tracer_coordinates" >
+                    <input type="hidden" name="page_url" id="page_url">
+                    <input type="submit" name="scrape" value="SCRAPE IT">
                 </form>
 
             </div>
@@ -100,6 +103,7 @@
                 <button onclick="nextParent()">Up Level</button>
                 <button onclick="previousParent()">Down Level</button>
                 <input type="hidden" id="parent_lineage_level" value="1">
+                
                 <button onclick="predictNext()">Predict Next</button>
 
             </div>

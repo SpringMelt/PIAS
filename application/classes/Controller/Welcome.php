@@ -1,6 +1,6 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-require Kohana::find_file('vendor', 'simplehtmldom/simple_html_dom'); 
+require Kohana::find_file('vendor', 'htmLawed'); 
 
 
 class Controller_Welcome extends Controller_Template {
@@ -21,34 +21,81 @@ class Controller_Welcome extends Controller_Template {
 			echo "<br>tracer_coordinates<br>";
 			echo "<pre>";
 				print_r(json_decode($_POST['tracer_coordinates']));
-			echo "</pre>";
+			echo "</pre><br>";
 
 		
 	
 			$url = urldecode($_POST['page_url']);
-			echo $url;
+			echo $url."<br>";
 				
-			// $html = file_get_html($url);
+			// $html = new simple_html_dom();
 
-			$tracer_coordinates = json_decode($_POST['tracer_coordinates']);
-			$first_el = $html->find('body', 0);
-			$cur_pos = $first_el;
-			foreach($tracer_coordinates as $v){
-				
-
-				echo $v->type_of." ".$v->index."<br>";
+			// // Load HTML from a URL 
+			// $html->load_file($url);
 
 
-				// $cur_pos = $cur_pos->find()
-			}
-		
+			// $document = FluentDOM::load(
+			//   $htmlFile, 
+			//   'text/html', 
+			//   [application\vendor\FluentDOM\Loader\Options::ALLOW_FILE => TRUE]
+			// );
+
+		 	$tracer_coordinates = json_decode($_POST['tracer_coordinates']);
+
+
+		 	$html = file_get_contents($url);
+			$tidy = htmLawed($html); 
+
+			$doc = new DOMDocument;
+			
+			libxml_use_internal_errors(true);
+			$doc->loadHTML($tidy);
+			libxml_clear_errors();
+
+			$xpath = new DOMXPath($doc);
+
+			$tbody = $doc->getElementsByTagName('body')->item(0);
+
 			
 
-			//echo $html;
+			// our query is relative to the tbody node
+			$query = '';
+
+			for($i=count($tracer_coordinates)-1; $i>=0; $i--){
+				
+				$query .= "/".$tracer_coordinates[$i]->type_of."[".($tracer_coordinates[$i]->index + 1) ."]";
+				// $cur_pos->find($tracer_coordinates[$i]->type_of, $tracer_coordinates[$i]->index);
+			}
+
+
+			$entries = $xpath->query($query, $tbody);
+
+			echo "<pre>";
+				print_r($entries);
+			echo "</pre>";
+
+			// foreach ($entries as $entry) {
+			//     echo "Found {$entry->previousSibling->previousSibling->nodeValue}," .
+			//          " by {$entry->previousSibling->nodeValue}\n";
+			// }
+
+
+
+
+			// $body = new simple_html_dom(); 
+			// $body->load($html->find("BODY",0)->plaintext);
+			// $html->clear();
+			// unset($html);
+
+
+			
+
+			
+			// echo $body->plaintext;
+			
+
 		}
 		
-
-		// $this->template->page_original = $html;
 	}
 
 

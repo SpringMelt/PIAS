@@ -10,22 +10,17 @@ $( document ).ready(function() {
     $('#external_content').on('load', function(){
         idoc = document.getElementById('external_content').contentDocument;
         
-       
+       //stop anchors from linking
         $(idoc).click(function(e){
                 e.preventDefault()
         });
 
         $(idoc).on('mouseup', function (event) {
-            
-            // console.log(event);
-            // event.preventDefault();
             //get the variable name
             var var_name = $('input[name=variable]:checked').val();
             //get the variable color
             var var_color = $('input[name=variable]:checked').attr('color');
-
             sel_element = idoc.elementFromPoint(mouse_x, mouse_y);
-
             selectText(sel_element, var_color, var_name);
         });
 
@@ -38,33 +33,19 @@ $( document ).ready(function() {
         });
     });
 
+});
+    
 
     function selectText(element, color, name) {
-
-        // var selection = idoc.getSelection().getRangeAt(0);
-        // var selectedText = selection.extractContents();
-        // var span = idoc.createElement('span');
-        // span.style.backgroundColor = hexColor;
-        // span.className = "variable_item "+name;
         $(element).addClass('variable_item');
         $(element).addClass(name);
-
         $(element).css('background-color', color);
-        // span.appendChild(selectedText);
-        // selection.insertNode(span);
-        // $('span.'+name).parent().css('background-color', hexColor);
     }
 
     function unselectText(name){
-        // $(idoc).find('.'+name).contents().unwrap();
         $(idoc).find('.'+name).css('background-color', 'initial');
         $(idoc).find('.'+name).removeClass(name);
-
     }
-
-    
- 
-});
 
     function change_frame_url(){
         var request_url = $('#scrape_url').val();
@@ -73,11 +54,8 @@ $( document ).ready(function() {
     }
 
      function add_variable(){
-        
         var variable_name = $('#variable_name').val();
         var variable_color = $('#variable_color').val();
-
-     
         $( "#the_varibles" ).prepend('<input type="hidden" class="scrape_vars" name="vars['+variable_name+']" id="'+variable_name+"pias"+'" >');
         $( "#the_varibles" ).prepend('<input type="radio" name="variable" value="'+variable_name+"pias"+'" color="'+variable_color+'"><span style="background-color:'+variable_color+'">'+variable_name+'</span> <br>');
         $('#variable_name').val("");
@@ -92,21 +70,18 @@ $( document ).ready(function() {
         parent_el.attr('pias_parent_level', current_lineage_layer);
         $('#parent_lineage_level').val(current_lineage_layer+1);
         current_parent = parent_el;
-
         var type_of = current_parent.prop('tagName');
         console.log('Found parent of type '+ type_of);
     }
 
     function nextParent(){
         var current_lineage_layer = parseInt($('#parent_lineage_level').val());
-        current_parent.css('background-color', 'initial');
-
+        //current_parent.css('background-color', 'initial');
         var next_parent = current_parent.parent();
         next_parent.css('background-color', 'yellow');
         next_parent.attr('pias_parent_level', current_lineage_layer+1);
         $('#parent_lineage_level').val(current_lineage_layer+1);
         current_parent = next_parent;
-
     }
 
     function previousParent(){
@@ -114,9 +89,7 @@ $( document ).ready(function() {
         current_parent.css('background-color', 'initial');
         var last_parent = current_parent.children('[pias_parent_level]');
         last_parent.css('background-color', 'yellow');
-        
         $('#parent_lineage_level').val(current_lineage_layer-1);
-
         current_parent = last_parent;
     }
 
@@ -126,18 +99,16 @@ $( document ).ready(function() {
 
    
     function predictNext(){
-        
         var current_lineage_layer = parseInt($('#parent_lineage_level').val());
-         
         //find variables list 
         var selected_variables = $('#the_varibles').find('input[type=radio]');
         //for each variable 
         selected_variables.each(function(){
-            var counter = 0;
+            var counter = -1;
             var coordinateObj = [];
             var selector_class = $(this).val();
-
             console.log(selector_class);
+   
             //follow each variable element up until it hits the repeating parent. 
             var cur_el = $( "#external_content" ).contents().find('.'+selector_class);
             while(cur_el.attr('pias_parent_level') != current_lineage_layer){
@@ -147,15 +118,14 @@ $( document ).ready(function() {
                 var item_parent = cur_el.parent();
                 //find all the elements of type in that parent
                 var matched_elements = item_parent.children(type_of);
-
+                //get index among other matched children
                 var index = matched_elements.index(cur_el);
-
-                coordinateObj[counter] = {'type_of': type_of, 'index': index};
-                
-                //store coordinates of variable in hidden field to be submitted
-                
+                var abs_index = cur_el.index();
+                coordinateObj[counter] = {'type_of': type_of, 'index': index, 'abs_index' : abs_index }; 
                 cur_el = cur_el.parent();
             }
+            
+            //store coordinates of variable in hidden field to be submitted
             var selector_id = selector_class;
             $('#'+selector_id).val(JSON.stringify(coordinateObj));
 
@@ -172,8 +142,9 @@ $( document ).ready(function() {
                 var matched_elements = item_parent.children(type_of);
 
                 var index = matched_elements.index(tracer);
+                var abs_index = tracer.index();
 
-                coordinates_from_body[tracer_ct] = {'type_of': type_of, 'index': index};
+                coordinates_from_body[tracer_ct] = {'type_of': type_of, 'index': index, 'abs_index': abs_index};
                 tracer_ct++;
                 tracer = tracer.parent();
             }
@@ -183,7 +154,7 @@ $( document ).ready(function() {
             var next_element = current_parent.next();
             var the_location = next_element;
              //go back throug the coordinates in the next parent 
-            for (i = counter; i > 0; i--) {
+            for (i = counter; i >= 0; i--) {
                 console.log("type "+coordinateObj[i].type_of+" at index "+ coordinateObj[i].index);
                 the_location = the_location.children(coordinateObj[i].type_of).eq(coordinateObj[i].index);
 

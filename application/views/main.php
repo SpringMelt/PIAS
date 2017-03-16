@@ -90,7 +90,8 @@
 
                 </form>
 
-                <form id="the_varibles" method="post" >
+<!--                 <form id="the_varibles" method="post" action="http://localhost:3000"> -->
+                <form id="the_varibles" method="post">
                     <input type="hidden" name="tracer_coordinates" id="tracer_coordinates" >
                     <input type="hidden" name="page_url" id="page_url">
                     <input type="submit" name="scrape" value="SCRAPE IT">
